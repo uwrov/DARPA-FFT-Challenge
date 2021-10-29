@@ -1,17 +1,19 @@
 Config = {
-    "batch_size": 30, # batch size for training
+    "batch_size": 50, # batch size for training
     "sequence_length": 35, # the input sequence length
     "feature_num": 7, # the number of input features
     "output_size": 2, # the output size, [delta_x, delta_y] for next timestamp
     "hidden_size": 64, # hidden size in LSTM model
     "num_layers": 2, # the Layer number of LSTM model
-    "learning_rate": 0.001, # learning rate
-    "divide_factor": 0.85, # the proportion for training dataset to total dataset
+    "learning_rate": 0.0005, # learning rate
+    "divide_factor": 0.75, # the proportion for training dataset to total dataset
     "slide_step": 1, #slide step for input sequence
     "loss_type": "huber",   # which loss to use (l1 / l2 / huber)
     "num_epoch": 50,
-    "dropout": 0.1
+    "dropout": 0.1,
+    "bidirectional": True
 }   
+
 
 class AverageMeter(object):
   """Computes and stores the average and current value"""
