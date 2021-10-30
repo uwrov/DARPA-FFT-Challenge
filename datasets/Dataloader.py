@@ -64,6 +64,20 @@ def feature_normalize(data, number_to_norm):
 
     return data
 
+def prepare_test(points, previous_points, label, num_steps, pos, history, Config):
+    assert history.shape[0] == pos+1
+    if pos - num_steps + 1 >= 0:
+        X = np.concatenate( (points[pos - num_steps + 1: pos + 1, 0:Config["feature_num"]], history[pos - num_steps + 1: pos + 1, :]), axis = 1)
+        Y = label[pos]
+        return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
+    else:
+        testing_part = np.concatenate( (points[0: pos + 1, 0:7] , history[0:pos + 1, :]), axis = 1)
+        training_part = previous_points[-(num_steps - pos -1):, :]
+        X = np.concatenate((training_part, testing_part), axis = 0) 
+        Y = label[pos]
+        return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
+    
+
 def test_iter(points, previous_points, label, batch_size, num_steps, device=None):
     num_examples = points.shape[0] 
     epoch_size = num_examples // batch_size
