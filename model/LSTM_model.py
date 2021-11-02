@@ -28,27 +28,29 @@ class myLSTM(nn.Module):
         self.criterion = build_loss(Config)
         self.bidirectional = Config["bidirectional"]
 
-        self.lstm = nn.LSTM(input_size=input_dim,
-                               hidden_size=hidden_dim,
-                               num_layers=num_layers,
+        self.lstm = nn.LSTM(input_size=Config["feature_num"]+2,
+                               hidden_size=self.hidden_size,
+                               num_layers=self.num_layers,
                                dropout=Config["dropout"],
                                batch_first=True,
                                bidirectional=Config["bidirectional"])
 
-        if self.bidirectional: self.fc = nn.Linear(hidden_size *2, output_size)
-        else: self.fc = nn.Linear(hidden_size, output_size)
+        if self.bidirectional: self.fc = nn.Linear(self.hidden_size *2, self.output_size)
+        else: self.fc = nn.Linear(self.hidden_size, self.output_size)
     
-    def forward(self, x, state, targets = None):
+    def forward(self, x, targets = None):
         # Set initial hidden and cell states 
         h0 = torch.zeros((self.bidirectional + 1)*self.num_layers, x.size(0), self.hidden_size).cuda(self.device)
         c0 = torch.zeros((self.bidirectional + 1)*self.num_layers, x.size(0), self.hidden_size).cuda(self.device)
         # Forward propagate LSTM
+        #print(x)
+        #print(targets)
+        #raise KeyboardInterrupt
         out, _ = self.lstm(x, (h0, c0))  # out: tensor of shape (batch_size, seq_length, hidden_size)
-        
         # Decode the hidden state of the last time step
         out = self.fc(out[:, -1, :])
-        if (targets is not None)
-            loss = self.criterion(outputs, targets)
+        if (targets is not None):
+            loss = self.criterion(out, targets)
             return out, loss
-        else
+        else:
             return out
