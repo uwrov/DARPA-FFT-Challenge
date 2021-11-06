@@ -13,7 +13,7 @@ TIME_ADJUSTMENT = 0
 (MIN_LAT, MAX_LAT) = (20, 40)
 (MIN_LONG, MAX_LONG) = (280, 350)
 
-EPSILON = 1
+EPSILON = 0.1
 
 class VectorField:
     def __init__(self, precision = 0, radius = 2):
@@ -43,7 +43,7 @@ class VectorField:
             for i in np.arange(min_x, max_x, self.divider):
                 for j in np.arange(min_y, max_y, self.divider):
                     dist = ((x-i)**2 + (y-j)**2)**0.5
-                    xy_hash[(i, j)] = v * (np.exp((-EPSILON*dist)**2))        #gaussian rbf
+                    xy_hash[(i, j)] = v * (np.exp(-(EPSILON*dist)**2))      #gaussian rbf
 
         self.data = xy_hash
 

@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 from datasets import read_file, get_path
 from model import VectorField
 
+TIME_SCALE = 3600
+
 def get_velocity(p1, p2, t1, t2):
     (x1, y1) = p1
     (x2, y2) = p2
-    dt = t2 - t1
-
+    dt = (t2 - t1) / TIME_SCALE
+    
     return np.array([x2 - x1, y2 - y1]) * dt
 
 
