@@ -10,8 +10,8 @@ Process:
 
 TIME_ADJUSTMENT = 0
 
-(MIN_LAT, MAX_LAT) = (20, 40)
-(MIN_LONG, MAX_LONG) = (280, 350)
+(MIN_LAT, MAX_LAT) = (10, 40)
+(MIN_LONG, MAX_LONG) = (260, 350)
 
 EPSILON = 0.1
 
@@ -28,6 +28,7 @@ class VectorField:
         '''
         xy_hash = dict()
 
+        count = dict()
         for x in np.arange(MIN_LAT, MAX_LONG, self.divider):
             for y in np.arange(MIN_LONG, MAX_LONG, self.divider):
                 xy_hash[(x, y)] = dict()
@@ -43,7 +44,16 @@ class VectorField:
             for i in np.arange(min_x, max_x, self.divider):
                 for j in np.arange(min_y, max_y, self.divider):
                     dist = ((x-i)**2 + (y-j)**2)**0.5
-                    xy_hash[(i, j)] = v * (np.exp(-(EPSILON*dist)**2))      #gaussian rbf
+                    vel = v * (np.exp(-(EPSILON*dist)**2))      #gaussian rbf
+                    if t in xy_hash[(i, j)]:
+                        xy_hash[(i, j)][t] += vel
+                        if (i,j,t) in count: count[(i,j,t)] += 1
+                        else: count[(i,j,t)] = 2
+                    else:
+                        xy_hash[(i, j)][t] = vel
+
+            for (i,j,t) in count:
+                xy_hash[(i, j)][t] /= count[(i,j,t)]
 
         self.data = xy_hash
 
