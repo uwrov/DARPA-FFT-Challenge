@@ -6,5 +6,5 @@ from __future__ import absolute_import
 # implementation details are hidden
 from .LSTM_model import myLSTM
 from .Vector_field import VectorField
-
-__all__ = ['myLSTM', 'VectorField']
+from .MDN import MDN
+__all__ = ['myLSTM', 'VectorField', 'MDN']
