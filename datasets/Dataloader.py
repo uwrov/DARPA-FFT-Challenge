@@ -106,7 +106,7 @@ def test_iter(points, previous_points, label, batch_size, num_steps, device=None
 
 
 def data_iter_random(points, label, batch_size, num_steps, slide_step, if_random, device=None):
-    # �?是因为输出的索引x是相应输入的索引y�?
+    # 是因为输出的索引x是相应输入的索引y
     num_spots = len(points)
     example_indices = []
     num_examples = 0

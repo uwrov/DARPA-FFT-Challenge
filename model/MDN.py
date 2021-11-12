@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as D
 import math 
+import numpy as np
 
 ONEOVERSQRT2PI = 1.0 / math.sqrt(2 * math.pi)
 LOG2PI = math.log(2 * math.pi)
@@ -45,7 +46,23 @@ def bivariate_gaussian_probability(sigma, mu, pho, target):
         - 0.5 * torch.pow((target_2 - mu2) / sigma_2, 2)/pho_inverse
         + pho/pho_inverse * (target_1 - mu1) * (target_2 - mu2) / (sigma_1*sigma_2)
     )
-
+    #print(ret.shape)
+    '''
+    non_index = torch.nonzero(ret >= 0)
+    if non_index.size(0) > 0:
+        idx1, idx2 = non_index[0,0], non_index[0,1]
+        print(ret[idx1, idx2])
+        print(mu1[idx1, idx2], mu2[idx1, idx2], sigma_1[idx1, idx2], sigma_2[idx1, idx2], pho[idx1, idx2], target_1[idx1, idx2], target_2[idx1, idx2])
+        print("---------------")
+        print(
+            -1*LOG2PI  -torch.log(sigma_1[idx1, idx2])  -torch.log( sigma_2[idx1, idx2]) 
+        -0.5*torch.log(pho_inverse[idx1, idx2]) 
+        -0.5 * torch.pow((target_1[idx1, idx2]-mu1[idx1, idx2]) / sigma_1[idx1, idx2], 2)/pho_inverse[idx1, idx2]
+        -0.5 * torch.pow((target_2[idx1, idx2] - mu2[idx1, idx2]) /  sigma_2[idx1, idx2], 2)/pho_inverse[idx1, idx2]
+         + pho[idx1, idx2]/pho_inverse[idx1, idx2] * (target_1[idx1, idx2] - mu1[idx1, idx2]) * (target_2[idx1, idx2] - mu2[idx1, idx2]) / (sigma_1[idx1, idx2]* sigma_2[idx1, idx2])
+        )
+        raise KeyboardInterrupt
+    '''
     return ret
 
 
@@ -149,7 +166,7 @@ def sampling_test(pi, mu, sigma, pho):
     return result      
 
 
-def sampling(pi, mu, sigma, pho, n ):
+def sampling(pi, sigma, mu, pho, n ):
     mix = D.Categorical(pi)
     indexes = mix.sample((n, ))
 
@@ -162,19 +179,20 @@ def sampling(pi, mu, sigma, pho, n ):
             ] )
         )
     
-    sample = []
+    samples = torch.zeros(n, 2)
 
     for i in range(0, indexes.size(0)):
         idx = indexes[i].item()
-        m = D.MultivariateNormal(mu_matrix[idx], sigma_matrix[idx])
+        m = D.MultivariateNormal(mu[idx], sigma_matrix[idx])
         data = m.sample()
-        sample.append(data)
+        samples[i, :]= data
     
-    sample = np.array(sample)
-    sample_avg = np.mean(sample, axis = 0)
+    sample_avg = torch.mean(samples, 0, True)
+    return sample_avg
+    
 
 def return_expecation_value(pi, mu):
-    expectation = torch.zeros(2)
+    expectation = torch.zeros(1, 2)
     for i in range(0, mu.size(0)):
-        expectation += pi[i]*mu[i]
-    return expectation.numpy()
+        expectation += pi[i]*mu[i:i+1, :]
+    return expectation

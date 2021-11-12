@@ -1,19 +1,29 @@
 import matplotlib.pyplot as plt
 
 Config = {
+    # ---------------- para for training  --------------------
     "batch_size": 50, # batch size for training
-    "sequence_length": 30, # the input sequence length
-    "feature_num": 7, # the number of input features
-    "output_size": 2, # the output size, [delta_x, delta_y] for next timestamp
-    "hidden_size": 64, # hidden size in LSTM model
-    "num_layers": 2, # the Layer number of LSTM model
-    "learning_rate": 1e-4, # learning rate
+    "learning_rate": 1e-5, # learning rate
+    "num_epoch": 50,
     "divide_factor": 0.8, # the proportion for training dataset to total dataset
     "slide_step": 1, #slide step for input sequence
+
+    # ---------------- para for LSTM --------------------
+    "sequence_length": 30, # the input sequence length
+    "feature_num": 7, # the number of input features
+    "hidden_size": 64, # hidden size in LSTM model
+    "num_layers": 2, # the Layer number of LSTM model
     "loss_type": "huber",   # which loss to use (l1 / l2 / huber)
-    "num_epoch": 50,
     "dropout": 0.1,
-    "bidirectional": True
+    "bidirectional": True,
+    "output_size": 128, # the output size, [delta_x, delta_y] for next timestamp
+
+    # ---------------- para for MDN --------------------
+    "input_features": 128,
+    "num_gaussians": 10,
+    "out_features": 1,
+
+
 }   
 
 
