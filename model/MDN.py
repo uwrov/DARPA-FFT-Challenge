@@ -118,12 +118,18 @@ class MDN(nn.Module):
         pho = self.pho_act(pho0)
         return pi, sigma, mu, pho
 
-def mdn_loss(pi, mu, sigma, pho, target, para_regu = False, lambda_sigma =0 , lambda_pi=0, lambda_mu=0, lambda_pho=0):
+def mdn_loss(pi, mu, sigma, pho, target, Config):
     #print(bivariate_gaussian_probability(sigma, mu, pho, target))
     
     mix_prob = torch.log(pi) + bivariate_gaussian_probability(sigma, mu, pho, target)
     log_prob = torch.logsumexp(mix_prob, dim = -1)
     loss = torch.mean(-log_prob)
+
+    para_regu = Config["para_regu"] 
+    lambda_sigma =Config["lambda_sigma"]
+    lambda_pi=Config["lambda_pi"]
+    lambda_mu=Config["lambda_mu"]
+    lambda_pho=Config["lambda_pho"]
 
     if para_regu:
         sigma_l1_reg = 0
@@ -131,16 +137,16 @@ def mdn_loss(pi, mu, sigma, pho, target, para_regu = False, lambda_sigma =0 , la
         mu_l1_reg = 0
         pho_l1_reg = 0
 
-        sigma_params = torch.cat( [x.view(-1) for x in self.sigma.parameters()] )
+        sigma_params = torch.cat( [x.view(-1) for x in sigma.parameters()] )
         pi_l1_reg = lambda_sigma * torch.norm(sigma_params, p = 2)
 
-        pi_params = torch.cat( [x.view(-1) for x in self.pi.parameters()] )
+        pi_params = torch.cat( [x.view(-1) for x in pi.parameters()] )
         pi_l1_reg = lambda_pi * torch.norm(pi_params, p = 2)
 
-        mu_params = torch.cat( [x.view(-1) for x in self.mu.parameters()] )
+        mu_params = torch.cat( [x.view(-1) for x in mu.parameters()] )
         mu_l1_reg = lambda_mu * torch.norm(mu_params, p = 2)
 
-        pho_params = torch.cat( [x.view(-1) for x in self.pho.parameters()] )
+        pho_params = torch.cat( [x.view(-1) for x in pho.parameters()] )
         pho_l1_reg = lambda_pho * torch.norm(pho_params, p = 2)
 
         loss = loss + sigma_l1_reg + pi_l1_reg + mu_l1_reg + pho_l1_reg 

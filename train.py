@@ -48,14 +48,11 @@ def calculate_score(trace_dis_day):
 
 
 # training the LSTM model
-def train(epoch, num_epochs, model, train_data, optimizer, config, device):
+def train(epoch, num_epochs, model, train_data, optimizer, config, device, total_step, scheduler):
     model.train()
     points, label, _ = train_data
     data_iter = data_iter_random(points, label, Config["batch_size"], Config["sequence_length"], Config["slide_step"], 1, device)
-    num_examples = 0
-    for id in range(0, len(points)):
-        num_examples += (points[id].shape[0] - Config["sequence_length"] ) // Config["slide_step"] + 1
-    total_step = num_examples // Config["batch_size"]
+
     i = 0
     losses = AverageMeter()
     mae = AverageMeter()
@@ -70,6 +67,7 @@ def train(epoch, num_epochs, model, train_data, optimizer, config, device):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        
 
         if MDN_USE:
             mae.update(0, points.size(0))
@@ -83,7 +81,7 @@ def train(epoch, num_epochs, model, train_data, optimizer, config, device):
             print ('Epoch [{}/{}], Step [{}/{}], Mean_error: {:.4f}, Mean_Loss: {:.4f}' 
                 .format(epoch+1, num_epochs, i+1, total_step, mae.avg, losses.avg))
         i += 1 
-
+        scheduler.step()
 
 
 def validate(model, test_data, train_data, config, device, visual = 0):
@@ -186,10 +184,25 @@ def main(args):
             return
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=Config["learning_rate"])
+
+        points, label, _ = train_data
+        num_examples = 0
+        for id in range(0, len(points)):
+            num_examples += (points[id].shape[0] - Config["sequence_length"] ) // Config["slide_step"] + 1
+        total_step = num_examples // Config["batch_size"]
+
+        if Config["scheduler"] == "cosine":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, total_step * Config["num_epoch"])
+        elif Config["scheduler"] == "StepLR":
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=total_step, gamma = Config["lr_decay"])
+        else: 
+            raise TypeError("Unsupported scheduler")
         # Train the model
         min_err = 10000
+
         for epoch in range(Config['num_epoch']):
-            train( epoch, Config['num_epoch'], model, train_data, optimizer, Config, master_gpu)
+            train( epoch, Config['num_epoch'], model, train_data, optimizer, Config, master_gpu, total_step, scheduler)
             if epoch %5 == 4:
                 err, loss, trace_err = validate(model, test_data,train_data, Config,  master_gpu, 0)
                 if trace_err < min_err:
