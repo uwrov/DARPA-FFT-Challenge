@@ -13,7 +13,7 @@ class GribVectorField:
         self.d_lat = (self.max_lat - self.min_lat) / size[0]
         self.d_long = (self.max_long - self.min_long) / size[1]
 
-    def get_field(self, lat, long, size):
+    def get_field(self, long, lat, size):
         field = list()
         shape = self.grb.values.shape
         lat_ind = int(((lat - self.min_lat) // self.d_lat) - size // 2)
