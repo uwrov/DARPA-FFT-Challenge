@@ -2,32 +2,44 @@ import pygrib
 from datetime import datetime
 from model import GribVectorField
 
-FILES = {
-    datetime(2021,11,5).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f000.grib2',
-    datetime(2021,11,5,3).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f003.grib2',
-    datetime(2021,11,5,6).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f006.grib2',
-    datetime(2021,11,5,9).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f009.grib2',
-    datetime(2021,11,5,12).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f012.grib2',
-    datetime(2021,11,5,15).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f015.grib2',
-    datetime(2021,11,5,18).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f018.grib2',
-    datetime(2021,11,5,21).timestamp(): './datasets/grib/20211105/gfswave.t00z.global.0p16.f021.grib2',
-    datetime(2021,11,6).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f000.grib2',
-    datetime(2021,11,6,3).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f003.grib2',
-    datetime(2021,11,6,6).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f006.grib2',
-    datetime(2021,11,6,9).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f009.grib2',
-    datetime(2021,11,6,12).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f012.grib2',
-    datetime(2021,11,6,15).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f015.grib2',
-    datetime(2021,11,6,18).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f018.grib2',
-    datetime(2021,11,6,21).timestamp(): './datasets/grib/20211106/gfswave.t00z.global.0p16.f021.grib2',
-    }
+import os
+import sys
 
-PARAM_NAME = "Direction of wind waves"
+FILE_DIR = "./datasets/grib"
+
+FILES = {}
+PARAM_NAME = "Direction of wind waves" # "Primary wave direction" # 
+
+files_read = False
 
 models = dict()
+
+def read_file_paths():
+    walk_dir = FILE_DIR
+
+    for root, subdirs, files in os.walk(walk_dir):
+        dirs = root.split("/")
+        dir = dirs[-1]
+        if len(dir) == 8:
+            year = int(dir[0:4])
+            month = int(dir[4:6])
+            day = int(dir[6:8])
+            for filename in files:
+                info = filename.split(".")
+                s_t = int(info[1].strip("tz"))
+                f_t = int(info[4].lstrip("f"))
+                hour = s_t + f_t
+                file_path = os.path.join(root, filename)
+                dt = datetime(year, month, day, hour).timestamp()
+                FILES[dt] = file_path
+
+    files_read = True
+
 
 def round_time(t):
     times = FILES.keys()
     return min(times, key=lambda x:abs(x-t))
+
 
 def read_grib_file(t):
     try:
@@ -41,7 +53,9 @@ def read_grib_file(t):
 
 
 def get_field(long, lat, timestamp, size=5):
-    time = round_time(t)
+    if files_read is not True:
+        read_file_paths()
+    time = round_time(timestamp)
     grib_vf = None
     if time not in models.keys():
         models[time] = GribVectorField(read_grib_file(time))
