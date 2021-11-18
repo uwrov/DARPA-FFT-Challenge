@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.utils.data
-from datasets import lstm_data_prepare, data_iter_random, scale_ratio, prepare_test
+from datasets import lstm_data_prepare, data_iter_random, scale_ratio, prepare_test, lstm_data_prepare_json
 from model import myLSTM, LSTM_MDN, sampling, return_expecation_value
 from utils import Config, AverageMeter, visual_path
 from geopy.distance import great_circle
@@ -31,6 +31,9 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to lstm checkpoint (default: none)')
 
 MDN_USE = True
+
+lstm_data_prepare_json(0.8, 7)
+raise KeyboardInterrupt
 
 def calculate_score(trace_dis_day):
     threshold = [4, 8, 16, 32]

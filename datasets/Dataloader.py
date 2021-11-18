@@ -5,7 +5,7 @@ import random
 import torch
 import json
 import time
-
+from datasets.Gribloader import get_field
 #----------index of feature name ------------------
 sampling_interval = 60*60
 
@@ -165,7 +165,7 @@ def lstm_data_prepare_json(divide_factor, feature_number):
     data_missing = []
     is_invalid = []
     for d in days:
-        filename = "./darpa_data/challenge_1-day_sofar_202111%02d_day%dJSON.json"%(d+1, d)
+        filename = "./datasets/darpa_data/challenge_1-day_sofar_202111%02d_day%dJSON.json"%(d+1, d)
         with open(filename,'r') as load_f:
             load_dict = json.load(load_f)
             for data in load_dict["all_data"]:
@@ -203,7 +203,9 @@ def lstm_data_prepare_json(divide_factor, feature_number):
                             point["meanDirectionalSpread"],
                             point["latitude"],
                             point["longitude"] ]
-
+                    get_field(point["latitude"], point["longitude"], timestamp)
+                    print(get_field)
+                    raise KeyboardInterrupt
                     if missing_hour ==0:
                         data_extraction[id].append(current_feature)
                     elif missing_hour == 1:

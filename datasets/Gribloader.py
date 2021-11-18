@@ -15,15 +15,18 @@ files_read = False
 models = dict()
 
 def read_file_paths():
+    global files_read, FILES
+
     walk_dir = FILE_DIR
 
     for root, subdirs, files in os.walk(walk_dir):
-        dirs = root.split("/")
-        dir = dirs[-1]
+        dirs = root.split('b')
+        dir = dirs[-1][1:]
         if len(dir) == 8:
             year = int(dir[0:4])
             month = int(dir[4:6])
             day = int(dir[6:8])
+
             for filename in files:
                 info = filename.split(".")
                 s_t = int(info[1].strip("tz"))
@@ -32,7 +35,6 @@ def read_file_paths():
                 file_path = os.path.join(root, filename)
                 dt = datetime(year, month, day, hour).timestamp()
                 FILES[dt] = file_path
-
     files_read = True
 
 
@@ -63,3 +65,4 @@ def get_field(long, lat, timestamp, size=5):
     grib_vf = models[time]
 
     return grib_vf.get_field(long, lat, size)
+
