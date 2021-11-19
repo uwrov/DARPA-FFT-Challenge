@@ -203,8 +203,9 @@ def lstm_data_prepare_json(divide_factor, feature_number):
                             point["meanDirectionalSpread"],
                             point["latitude"],
                             point["longitude"] ]
-                    get_field(point["latitude"], point["longitude"], timestamp)
-                    print(get_field)
+                    result = get_field(point["latitude"], point["longitude"], timestamp)
+                    print(point["latitude"], point["longitude"], timestamp)
+                    print(result)
                     raise KeyboardInterrupt
                     if missing_hour ==0:
                         data_extraction[id].append(current_feature)
