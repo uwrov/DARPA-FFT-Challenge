@@ -204,7 +204,7 @@ def lstm_data_prepare_json(divide_factor, feature_number):
                             point["latitude"],
                             point["longitude"] ]
                     result = get_field(point["latitude"], point["longitude"], timestamp)
-                    print(point["latitude"], point["longitude"], timestamp)
+                    print(point["longitude"],point["latitude"],  timestamp)
                     print(result)
                     raise KeyboardInterrupt
                     if missing_hour ==0:
