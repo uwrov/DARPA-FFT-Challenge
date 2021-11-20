@@ -8,7 +8,7 @@ import sys
 FILE_DIR = "./datasets/grib"
 
 FILES = {}
-PARAM_NAME = "Direction of wind waves" # "Primary wave direction" # 
+PARAM_NAME = "Primary wave direction" # "Direction of wind waves" # 
 
 files_read = False
 
@@ -65,4 +65,3 @@ def get_field(long, lat, timestamp, size=5):
     grib_vf = models[time]
 
     return grib_vf.get_field(long, lat, size)
-

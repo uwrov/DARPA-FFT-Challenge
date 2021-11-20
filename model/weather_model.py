@@ -31,7 +31,7 @@ class GribVectorField:
         m.drawparallels(np.arange(-90.,120.,30.),labels=[1,0,0,0])
         m.drawmeridians(np.arange(-180.,180.,60.),labels=[0,0,0,1])
 
-        tx, ty = m(300, 34)
+        tx, ty = m(324, 28)
         m.plot(tx, ty, marker='D')
 
         plt.colorbar(cs,orientation='vertical')
