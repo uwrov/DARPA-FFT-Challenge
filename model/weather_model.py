@@ -45,18 +45,18 @@ class GribVectorField:
         l_list = list()
         la, lo = self.grb.latlons()
         shape = self.grb.values.shape
-        vals = np.ma.filled(self.grb.values, -1)
+        vals = np.ma.filled(self.grb.values, -SCALE)
         lat_ind = int(((self.max_lat - lat) // self.d_lat) - size // 2)
         long_ind = int(((long - self.min_long) // self.d_long) - size // 2)
         for i in range(lat_ind, lat_ind + size):
-            lat_list = list()
-            i_list = list()
+            #lat_list = list()
+            #i_list = list()
             for j in range(long_ind, long_ind + size):
                 if i >= 0 and j >= 0 and i < shape[0] and j < shape[1]:
-                    lat_list.append(vals[i, j] / SCALE)
-                    i_list.append((lo[i, j], la[i, j]))
+                    field.append(vals[i, j] / SCALE)
+                    l_list.append((lo[i, j], la[i, j]))
                 else:
-                    lat_list.append(np.ma.masked)
-            field.append(lat_list)
-            l_list.append(i_list)
+                    field.append(np.ma.masked)
+            #field.append(lat_list)
+            #l_list.append(i_list)
         return field, l_list
