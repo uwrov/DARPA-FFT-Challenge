@@ -8,7 +8,7 @@ import sys
 FILE_DIR = "./datasets/grib"
 
 FILES = {}
-PARAM_NAME = "Primary wave direction" # "Direction of wind waves" # 
+PARAM_NAME = "Primary wave direction" # "Direction of wind waves" #
 
 files_read = False
 
@@ -32,10 +32,15 @@ def read_file_paths():
                 s_t = int(info[1].strip("tz"))
                 f_t = int(info[4].lstrip("f"))
                 hour = s_t + f_t
+                t_day = day + (hour // 24)
+                hour = hour % 24
+                t_month = month + (t_day // 30)
+                t_day = t_day % 30
                 file_path = os.path.join(root, filename)
-                dt = datetime(year, month, day, hour).timestamp()
+                dt = datetime(year, t_month, t_day, hour).timestamp()
                 FILES[dt] = file_path
     files_read = True
+
 
 
 def round_time(t):
