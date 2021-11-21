@@ -23,7 +23,7 @@ from datasets import lstm_data_prepare, data_iter_random, scale_ratio, prepare_t
 from model import myLSTM, LSTM_MDN, sampling, return_expecation_value
 from utils import Config, AverageMeter, visual_path
 from geopy.distance import great_circle
-
+from tqdm import tqdm
 parser = argparse.ArgumentParser(description='Hand pose from mutliple views')
 parser.add_argument('-o', '--output', default='temp', type=str,
                     help='the name of output file ')
@@ -32,13 +32,14 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
 
 MDN_USE = True
 
-lstm_data_prepare_json(0.8, 7)
-raise KeyboardInterrupt
+#lstm_data_prepare(0.8, 7, 24*4)
+#raise KeyboardInterrupt
 
 def calculate_score(trace_dis_day):
     threshold = [4, 8, 16, 32]
+    #print(trace_dis_day.shape)
     total_num = trace_dis_day.shape[0]
-    for d in range(0, 5):
+    for d in range(0, trace_dis_day.shape[1]):
         day_err = trace_dis_day[:, d]
         num_valid = []
         for t in threshold:
@@ -104,7 +105,7 @@ def validate(model, test_data, train_data, config, device, visual = 0):
         trace_dis_day = []
         path_gt = []
         path_truth = []
-        for id in range(0, spots_num):
+        for id in tqdm(range(0, spots_num)): 
             location_pred = [absolute_pos[id][0][0], absolute_pos[id][0][1]] 
             location_gt = [absolute_pos[id][0][0], absolute_pos[id][0][1]] 
             trace_err = []
@@ -114,7 +115,7 @@ def validate(model, test_data, train_data, config, device, visual = 0):
             trace_gt = [[absolute_pos[id][0][0], absolute_pos[id][0][1]]]
 
             history_movement = [ [points[id][0][-2], points[id][0][-1]] ]
-
+            #print(points[id].shape[0])
             for idx in range(0, points[id].shape[0]):
                 inputs, labels = prepare_test(points[id], previous_points[id], label[id], Config["sequence_length"], idx, np.array(history_movement), Config)
 
@@ -151,22 +152,22 @@ def validate(model, test_data, train_data, config, device, visual = 0):
             for d in range(0, day_num):
                 day_err.append(trace_err[11 + d*24])
             trace_dis_day.append(day_err)
-
+            
             if visual:
                 visual_path(previous_trace, np.array(trace_gt), np.array(trace_predict),id)
-        
+        #print(len(trace_dis_day), len(trace_dis_day[0]))
+        #print(np.array(trace_dis_day))
         calculate_score(np.array(trace_dis_day))
         mean_dis = np.mean(np.array(trace_dis_day), axis=0)
         print('Testing Mean_err: {:.4f}, Mean_Loss: {:.4f}'.format(mae.avg, losses.avg))
         print('Testing Great Circle Dis by days: ', mean_dis)
 
-        return mae.avg, losses.avg, mean_dis[4]
+        return mae.avg, losses.avg, mean_dis[3]
 
 def main(args):
     output_file = args.output
-    # read data from excel file
-    train_data, test_data = lstm_data_prepare(divide_factor = Config['divide_factor'], feature_number = Config['feature_num'] )
-
+    # read data from excel filtrain_data, test_data = lstm_data_prepare(divide_factor = Config['divide_factor'], feature_number = Config['feature_num'], Config['TEST_NUM'])
+    train_data, test_data = lstm_data_prepare(divide_factor = Config['divide_factor'], feature_number = Config['feature_num'], test_num = Config['test_num'], vector_field_use = Config['vector_field'] )
     # initial the deep learning model
     master_gpu = 0 # GPU you will use in training
     if not MDN_USE:
@@ -206,7 +207,7 @@ def main(args):
 
         for epoch in range(Config['num_epoch']):
             train( epoch, Config['num_epoch'], model, train_data, optimizer, Config, master_gpu, total_step, scheduler)
-            if epoch %5 == 4:
+            if epoch %5 == 1:
                 err, loss, trace_err = validate(model, test_data,train_data, Config,  master_gpu, 0)
                 if trace_err < min_err:
                     min_err = trace_err

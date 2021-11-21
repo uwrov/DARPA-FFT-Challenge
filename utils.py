@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 Config = {
     # ---------------- para for training  --------------------
     "batch_size": 50, # batch size for training
-    "learning_rate": 5e-4, # learning rate
-    "num_epoch": 50,
+    "learning_rate": 2e-4, # learning rate
+    "num_epoch": 70,
     "divide_factor": 0.8, # the proportion for training dataset to total dataset
     "slide_step": 1, #slide step for input sequence
     "para_regu": False,
@@ -14,6 +14,8 @@ Config = {
     "lambda_pho": 1e-3,
     "scheduler": "cosine",
     "lr_decay": 0.98,
+    "test_num": 85,
+    "vector_field": True,
     # ---------------- para for LSTM --------------------
     "sequence_length": 30, # the input sequence length
     "feature_num": 7, # the number of input features
