@@ -359,7 +359,7 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 pickle_file = open(filename2,'wb')
                 pickle.dump(save_feature, pickle_file)
                 pickle_file.close()
-                print("save file", file_name2, " successfully!")
+                print("save file", filename2, " successfully!")
             save_feature = {}
             features = []
             valid = True
@@ -438,7 +438,7 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 pickle_file = open(filename2,'wb')
                 pickle.dump(save_feature, pickle_file)
                 pickle_file.close()
-                print("save file", file_name2, " successfully!")
+                print("save file", filename2, " successfully!")
 
 
             '''
