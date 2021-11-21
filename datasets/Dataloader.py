@@ -16,12 +16,14 @@ peakDirection = 3
 peakDirectionalSpread = 4
 meanDirection = 5
 meanDirectionalSpread = 6
-timestamp = 7
+Timestamp = 7
 latitude = 8
 longitude = 9 
 epoch = 10
 spotId = 11
 scale_ratio = 50
+
+MIN_SAMPLE = 30 + 4*24
 #--------------------------------------------------
 
 
@@ -32,8 +34,9 @@ def read_json_file(name):
 
 
 def read_file():
-    file = "./datasets/5eccca0e424247ae9cadb288470a1398.xlsx"
-    data = pd.read_excel(file) # read the data from excel file
+    file = "./datasets/darpa_data/challenge_18-day_sofar_20211102_csv.csv"
+    data = pd.read_csv(file)
+    #data = pd.read_excel(file) # read the data from excel file
     index_name = [var for var in data.columns]  # index names in the first row
     raw_data = data.values
     print("Data loading successfully!")
@@ -282,7 +285,7 @@ def lstm_data_prepare_json(divide_factor, feature_number):
 
                 
 
-def lstm_data_prepare(divide_factor, feature_number):
+def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use):
     train_data = ([], [], [])
     test_data = ([], [], [])
     index_name, data = read_file()
@@ -298,42 +301,108 @@ def lstm_data_prepare(divide_factor, feature_number):
     delta_movement = [] # output of model 
     features = [] # input of of model
     absolute_pos = []
-
+    
+    valid = True
     for i in range(0, data.shape[0]):
         current_id = data[i, spotId]
         if current_id != previous_id:
+            #print("--------------------", current_id, valid, len(features))
             # concatenate the features with history movement as the input features
-            inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
-            outputs = np.array(delta_movement)[1:, :]
-            ref = np.array(absolute_pos)[:-1, :]
-            assert inputs.shape[0] == outputs.shape[0]
-            # divide the dataset into training dataset and testing dataset
-            sample_num = inputs.shape[0]
-            training_num = int(divide_factor*sample_num)
-            training_numbers.append(training_num)
-            testing_numbers.append(sample_num - training_num)
+                        # divide the dataset into training dataset and testing dataset
+                        
+            if valid and len(features) > MIN_SAMPLE:
+                inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
+                outputs = np.array(delta_movement)[1:, :]
+                ref = np.array(absolute_pos)[:-1, :]
+                assert inputs.shape[0] == outputs.shape[0]
 
-            train_data[0].append(inputs[:training_num])
-            train_data[1].append(outputs[:training_num])
-            train_data[2].append(ref[:training_num])
-            test_data[0].append(inputs[training_num:])
-            test_data[1].append(outputs[training_num:])
-            test_data[2].append(ref[training_num:])
+                sample_num = inputs.shape[0]
+                #print(sample_num)
+                training_num = sample_num- test_num
+                training_numbers.append(training_num)
+                testing_numbers.append(test_num)
 
+                train_data[0].append(inputs[:training_num])
+                train_data[1].append(outputs[:training_num])
+                train_data[2].append(ref[:training_num])
+                test_data[0].append(inputs[training_num:])
+                test_data[1].append(outputs[training_num:])
+                test_data[2].append(ref[training_num:])
+            else:
+                print("ERROR: Too much data lost, so discard ", previous_id, len(features))
             # reset the tuple to save information for next spotid
             delta_movement = []
             absolute_pos = []
-            timestamp = []
+            timestamp = [data[i, epoch]]
             features = []
+            valid = True
         else:
-            if(i == 0): continue
+            if data[i, epoch] < 1636070401: 
+                timestamp = [data[i, epoch]]
+                continue
+        
             timestamp.append(data[i, epoch])
-            features.append(data[i, 0:feature_number])
-            absolute_pos.append([data[i, latitude], data[i, longitude]])
-            delta_movement.append([scale_ratio*(data[i, latitude] - data[i-1, latitude]), scale_ratio*(data[i, longitude] - data[i-1, longitude])   ])
+            if(i == 0): 
+                continue    
+            missing_hour = round((timestamp[-1] - timestamp[-2])/3600)
 
+            if missing_hour == 0:
+                continue
+            elif missing_hour > 4: 
+                print("Warning: too much missing hours in bot:", current_id, missing_hour, "hours ", data[i, Timestamp] )
+                delta_movement = []
+                absolute_pos = []
+                timestamp = [data[i, epoch]]
+                features = []
+            else:
+                if missing_hour > 1: print("Warning: miss some data in bot",current_id, missing_hour ,"hours, use interpolation to fix")
+                previous_feature = data[i-1, 0:feature_number]
+                current_feature = data[i, 0:feature_number]
+
+                previous_pos = data[i-1, latitude:longitude+1]
+                current_pos = data[i, latitude:longitude+1]
+                previous_time = timestamp[-2] 
+                now_time = timestamp[-1] 
+                for h in range(0, missing_hour):
+                    time_interpolated = previous_time + (h+1)/missing_hour*(now_time - previous_time) 
+                    now_loc = previous_pos + (h+1)/missing_hour*(current_pos - previous_pos)
+                    absolute_pos.append(now_loc)
+                    now_feature = previous_feature + (h+1)/missing_hour*(current_feature - previous_feature)
+                    delta_movement.append(scale_ratio*(current_pos - previous_pos)/missing_hour)
+                    if vector_field_use:
+                        if now_loc[1] < 0: longi = now_loc[1] + 360
+                        else: longi = now_loc[1]
+                        field, field_pos = get_field(longi, now_loc[0], time_interpolated)
+                        field = np.array(field)
+                        #print(len(field), len(field_pos))
+                        #raise KeyboardInterrupt
+                        features.append(np.concatenate((now_feature, field) , axis=0))
+                    else:
+                        features.append(now_feature)
+
+                        
         if i == data.shape[0] - 1:
             # concatenate the features with history movement as the input features
+            if valid and len(features) > MIN_SAMPLE:
+                inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
+                outputs = np.array(delta_movement)[1:, :]
+                ref = np.array(absolute_pos)[:-1, :]
+                assert inputs.shape[0] == outputs.shape[0]
+
+                sample_num = inputs.shape[0]
+                #print(sample_num)
+                training_num = sample_num- test_num
+                training_numbers.append(training_num)
+                testing_numbers.append(test_num)
+
+                train_data[0].append(inputs[:training_num])
+                train_data[1].append(outputs[:training_num])
+                train_data[2].append(ref[:training_num])
+                test_data[0].append(inputs[training_num:])
+                test_data[1].append(outputs[training_num:])
+                test_data[2].append(ref[training_num:])
+
+            '''
             inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
             outputs = np.array(delta_movement)[1:, :]
             ref = np.array(absolute_pos)[:-1, :]
@@ -350,11 +419,11 @@ def lstm_data_prepare(divide_factor, feature_number):
             test_data[0].append(inputs[training_num:])
             test_data[1].append(outputs[training_num:])
             test_data[2].append(ref[training_num:])
-
+            '''
         previous_id = current_id
     print("SpotID number: ", len(testing_numbers))
-    #print("LSTM Train data:", training_numbers)
-    #print("LSTM Test data:", testing_numbers)
+    print("LSTM Train data:", training_numbers)
+    print("LSTM Test data:", testing_numbers)
     return train_data, test_data
         
 
