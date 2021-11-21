@@ -39,9 +39,18 @@ def read_file_paths():
                 file_path = os.path.join(root, filename)
                 dt = datetime(year, t_month, t_day, hour).timestamp()
                 FILES[dt] = file_path
+    load_files()
     files_read = True
 
-
+def load_files():
+    count = 0
+    length = len(FILES)
+    for time in FILES.keys():
+        if(count == length or count % 5 == 0):
+            print("Loading:", count/length*100, "% loaded")
+        models[time] = GribVectorField(read_grib_file(time))
+        count += 1
+    print("Fully loaded!")
 
 def round_time(t):
     times = FILES.keys()
