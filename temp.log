@@ -1,0 +1,10 @@
+nohup: ignoring input
+Data loading successfully!
+Traceback (most recent call last):
+  File "train.py", line 224, in <module>
+    main(args)
+  File "train.py", line 170, in main
+    train_data, test_data = lstm_data_prepare(divide_factor = Config['divide_factor'], feature_number = Config['feature_num'], test_num = Config['test_num'], vector_field_use = Config['vector_field'] )
+  File "/home/ubuntu/darpa/DARPA-FFT-Challenge/datasets/Dataloader.py", line 362, in lstm_data_prepare
+    print("save file", file_name2, " successfully!")
+NameError: name 'file_name2' is not defined
