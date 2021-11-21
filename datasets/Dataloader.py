@@ -313,9 +313,10 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
         feature_load = pickle.load(pickle_file)
         pickle_file.close()
         preload = True
+        print("load file", filename, " successfully!")
     else: preload = False
            
-    for i in range(0, data.shape[0]):
+    for i in tqdm(range(0, data.shape[0])):
         current_id = data[i, spotId]
         if current_id != previous_id:
             #print("--------------------", current_id, valid, len(features))
@@ -352,6 +353,7 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 feature_load = pickle.load(pickle_file)
                 pickle_file.close()
                 preload = True
+                print("load file", filename, " successfully!")
             else: preload = False
            
             filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
