@@ -164,12 +164,16 @@ def lstm_data_prepare_json(divide_factor, feature_number):
     current_time = []
     data_missing = []
     is_invalid = []
+    longs = []
+    latitudes = []
     for d in days:
         filename = "./datasets/darpa_data/challenge_1-day_sofar_202111%02d_day%dJSON.json"%(d+1, d)
+        print(filename)
         with open(filename,'r') as load_f:
             load_dict = json.load(load_f)
             for data in load_dict["all_data"]:
                 spotid = data["data"]["spotterId"]
+                #print(spotid)
                 if spotid in spots_name:
                     id = spots_name.index(spotid)
                 else:
@@ -203,9 +207,18 @@ def lstm_data_prepare_json(divide_factor, feature_number):
                             point["meanDirectionalSpread"],
                             point["latitude"],
                             point["longitude"] ]
-                    result = get_field(point["latitude"], point["longitude"], timestamp)
-                    print(point["longitude"],point["latitude"],  timestamp)
-                    print(result)
+                    #result = get_field(point["latitude"], point["longitude"], timestamp)
+                    if point["longitude"] < 0: longi = point["longitude"] + 360
+                    else: longi = point["longitude"]
+                    t = time.time()
+                    r1,r2 = get_field(longi, point["latitude"],  timestamp)
+                    print(time.time() - t)
+                    #longs.append(point["longitude"])
+                    #latitudes.append(point["latitude"])
+                    #print(point["longitude"],point["latitude"],  timestamp)
+                    print(r1)
+                    print(r2)
+                    #print(r3)
                     raise KeyboardInterrupt
                     if missing_hour ==0:
                         data_extraction[id].append(current_feature)
@@ -225,6 +238,9 @@ def lstm_data_prepare_json(divide_factor, feature_number):
                         data_extraction[id].append(current_feature)
                     elif missing_hour > 2:
                         is_invalid[id] = 1 
+    print(max(longs),min(longs) )
+    print(max(latitudes), min(latitudes))
+    raise KeyboardInterrupt
     total_number = []
     valid_data = []
     for i in range(0, len(spots_name)):
