@@ -29,7 +29,7 @@ Config = {
     # ---------------- para for MDN --------------------
     "input_features": 128,
     "num_gaussians": 10,
-    "out_features": 1,
+    "out_features": 7,
 
 
 }   

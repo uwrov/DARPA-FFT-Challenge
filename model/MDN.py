@@ -46,6 +46,16 @@ def bivariate_gaussian_probability(sigma, mu, pho, target):
         - 0.5 * torch.pow((target_2 - mu2) / sigma_2, 2)/pho_inverse
         + pho/pho_inverse * (target_1 - mu1) * (target_2 - mu2) / (sigma_1*sigma_2)
     )
+    
+    for i in range(2, sigma.size(2)):
+      mu_i = mu[:,:,i]
+      sigma_i = sigma[:, :, i]
+      target_i = target[:,:,i]
+      ret += (–torch.log(sigma_i)
+                – 0.5 * LOG2PI
+                – 0.5 * torch.pow((target_i – mu_i) / sigma_i, 2)
+      )
+    
     #print(ret.shape)
     '''
     non_index = torch.nonzero(ret >= 0)
@@ -97,22 +107,22 @@ class MDN(nn.Module):
             nn.Softmax(dim=1)
         )
 
-        self.sigma = nn.Linear(in_features, out_features * num_gaussians *2)
+        self.sigma = nn.Linear(in_features, (2 + out_features) * num_gaussians)
         self.sigma_act = nn.ELU()
 
-        self.mu = nn.Linear(in_features, out_features * num_gaussians * 2)
+        self.mu = nn.Linear(in_features, (2 + out_features) * num_gaussians)
 
-        self.pho = nn.Linear(in_features, out_features * num_gaussians)
+        self.pho = nn.Linear(in_features, num_gaussians)
         self.pho_act = nn.Tanh()
         
     def forward(self, minibatch):
         pi = self.pi(minibatch)
         sigma = self.sigma_act(self.sigma(minibatch)) + 1 + 1e-15
         
-        sigma = sigma.view(-1, self.num_gaussians, self.out_features*2)
+        sigma = sigma.view(-1, self.num_gaussians, self.out_features + 2)
 
         mu = self.mu(minibatch)
-        mu = mu.view(-1, self.num_gaussians, self.out_features*2)
+        mu = mu.view(-1, self.num_gaussians, self.out_features + 2)
 
         pho0 = self.pho(minibatch)
         pho = self.pho_act(pho0)
@@ -198,7 +208,9 @@ def sampling(pi, sigma, mu, pho, n ):
     
 
 def return_expecation_value(pi, mu):
-    expectation = torch.zeros(1, 2)
-    for i in range(0, mu.size(0)):
+    expectation = torch.zeros(1, 2+7)
+    print(pi.size())
+    print(mu.size())
+    for i in range(0, pi.size(0)):
         expectation += pi[i]*mu[i:i+1, :]
     return expectation
