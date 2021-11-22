@@ -37,7 +37,7 @@ def read_json_file(name):
 
 
 def read_file():
-    file = "./datasets/darpa_data/challenge_18-day_sofar_20211102_csv.csv"
+    file = "./datasets/darpa_data/challenge_19-day_sofar_20211102_csv.csv"#"./datasets/darpa_data/challenge_18-day_sofar_20211102_csv.csv"
     data = pd.read_csv(file)
     #data = pd.read_excel(file) # read the data from excel file
     index_name = [var for var in data.columns]  # index names in the first row
@@ -83,12 +83,13 @@ def feature_normalize(data, number_to_norm):
 def prepare_test(points, previous_points, label, num_steps, pos, history, Config):
     assert history.shape[0] == pos+1
     if pos - num_steps + 1 >= 0:
-        X = np.concatenate( (points[pos - num_steps + 1: pos + 1, 0:Config["feature_num"]], history[pos - num_steps + 1: pos + 1, :]), axis = 1)
+        #X = np.concatenate( (points[pos - num_steps + 1: pos + 1, 0:Config["feature_num"]], history[pos - num_steps + 1: pos + 1, :]), axis = 1)
+        X = history[pos - num_steps + 1: pos + 1, :]
         Y = label[pos]
         return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
     else:
-        testing_part = np.concatenate( (points[0: pos + 1, 0:7] , history[0:pos + 1, :]), axis = 1)
-        training_part = previous_points[-(num_steps - pos -1):, :]
+        testing_part = history[0:pos + 1, :] #np.concatenate( (points[0: pos + 1, 0:7] , history[0:pos + 1, :]), axis = 1)
+        training_part = previous_points[-(num_steps - pos -1):, :2+config["feature_num"]]
         X = np.concatenate((training_part, testing_part), axis = 0) 
         Y = label[pos]
         return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
@@ -304,9 +305,8 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
     delta_movement = [] # output of model 
     features = [] # input of of model
     absolute_pos = []
-    save_feature = {}
     valid = True
-    
+    if_update = False
     filename = "./datasets/vector_field/" +data[0, spotId] + "_feature.pkl"
     if os.path.exists(filename) and vector_field_use:
         pickle_file = open(filename, 'rb') 
@@ -314,7 +314,9 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
         pickle_file.close()
         preload = True
         print("load file", filename, " successfully!")
-    else: preload = False
+    else: 
+        preload = False
+        feature_load = {}
            
     for i in tqdm(range(0, data.shape[0])):
         current_id = data[i, spotId]
@@ -324,8 +326,8 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                         # divide the dataset into training dataset and testing dataset
                         
             if valid and len(features) > MIN_SAMPLE:
-                inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
-                outputs = np.concatenate( (np.array(features)[1:, 0:feature_number], np.array(delta_movement)[1:, :]), axis = 1)
+                inputs = np.concatenate((np.array(delta_movement)[:-1, :], np.array(features)[:-1, :]), axis =1 )
+                outputs = np.concatenate( ( np.array(delta_movement)[1:, :], np.array(features)[1:, 0:feature_number]), axis = 1)
                 ref = np.array(absolute_pos)[:-1, :]
                 assert inputs.shape[0] == outputs.shape[0]
    
@@ -347,6 +349,14 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
             delta_movement = []
             absolute_pos = []
             timestamp = [data[i, epoch]]
+            
+            filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
+            if vector_field_use and if_update: #(not os.path.exists(filename2)) 
+                pickle_file = open(filename2,'wb')
+                pickle.dump(feature_load, pickle_file)
+                pickle_file.close()
+                print("save file", filename2, " successfully!")
+            
             filename = "./datasets/vector_field/" + current_id + "_feature.pkl"
             if os.path.exists(filename) and vector_field_use:
                 pickle_file = open(filename, 'rb') 
@@ -354,17 +364,13 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 pickle_file.close()
                 preload = True
                 print("load file", filename, " successfully!")
-            else: preload = False
-           
-            filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
-            if (not os.path.exists(filename2)) and vector_field_use:
-                pickle_file = open(filename2,'wb')
-                pickle.dump(save_feature, pickle_file)
-                pickle_file.close()
-                print("save file", filename2, " successfully!")
-            save_feature = {}
+            else: 
+                preload = False
+                feature_load = {}
+
             features = []
             valid = True
+            if_update = False
         else:
             if data[i, epoch] < 1636070401: 
                 timestamp = [data[i, epoch]]
@@ -402,11 +408,18 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                         if now_loc[1] < 0: longi = now_loc[1] + 360
                         else: longi = now_loc[1]
                         if preload:
-                            field, field_pos = feature_load[time_interpolated]  
+                            if time_interpolated  in feature_load:
+                              field, field_pos = feature_load[time_interpolated]  
+                            else:
+                              field, field_pos = get_field(longi, now_loc[0], time_interpolated)
+                              field = np.array(field)
+                              feature_load[time_interpolated] = field, field_pos
+                              if_update = True
                         else:
                             field, field_pos = get_field(longi, now_loc[0], time_interpolated)
                             field = np.array(field)
-                            save_feature[time_interpolated] = field, field_pos
+                            feature_load[time_interpolated] = field, field_pos
+                            if_update = True                            
                         #print(len(field), len(field_pos))
                         #raise KeyboardInterrupt
                         features.append(np.concatenate((now_feature, field) , axis=0))
@@ -417,9 +430,10 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
         if i == data.shape[0] - 1:
             # concatenate the features with history movement as the input features
             if valid and len(features) > MIN_SAMPLE:
-                inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
-                outputs = np.concatenate( np.array(features)[0:feature_number, :], ( np.array(delta_movement)[1:, :] ), axis = 1)
+                #inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
                 #outputs = np.array(delta_movement)[1:, :]
+                inputs = np.concatenate((np.array(delta_movement)[:-1, :], np.array(features)[:-1, :]), axis =1 )
+                outputs = np.concatenate( ( np.array(delta_movement)[1:, :], np.array(features)[1:, 0:feature_number]), axis = 1)
                 ref = np.array(absolute_pos)[:-1, :]
                 assert inputs.shape[0] == outputs.shape[0]
 
@@ -437,9 +451,9 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 test_data[2].append(ref[training_num:])
             
             filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
-            if (not os.path.exists(filename2)) and vector_field_use:
+            if if_update and vector_field_use:
                 pickle_file = open(filename2,'wb')
-                pickle.dump(save_feature, pickle_file)
+                pickle.dump(feature_load, pickle_file)
                 pickle_file.close()
                 print("save file", filename2, " successfully!")
 

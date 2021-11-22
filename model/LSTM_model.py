@@ -27,8 +27,12 @@ class myLSTM(nn.Module):
         self.output_size = Config["output_size"]
         self.criterion = build_loss(Config)
         self.bidirectional = Config["bidirectional"]
-
-        self.lstm = nn.LSTM(input_size=Config["feature_num"]+2,
+      
+        if Config["vector_field"]:
+            self.input_size = Config["feature_num"]+2
+        else:
+            self.input_size = Config["feature_num"]+2+25
+        self.lstm = nn.LSTM(input_size=self.input_size,
                                hidden_size=self.hidden_size,
                                num_layers=self.num_layers,
                                dropout=Config["dropout"],
