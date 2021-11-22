@@ -4,6 +4,7 @@ from model import GribVectorField
 
 import os
 import sys
+import time as clock_time
 
 FILE_DIR = "./datasets/grib"
 
@@ -35,7 +36,7 @@ def read_file_paths():
                 t_day = day + (hour // 24)
                 hour = hour % 24
                 t_month = month + (t_day // 30)
-                t_day = t_day % 30
+                t_day = (t_day % 30) + 1
                 file_path = os.path.join(root, filename)
                 dt = datetime(year, t_month, t_day, hour).timestamp()
                 FILES[dt] = file_path
@@ -43,6 +44,7 @@ def read_file_paths():
     files_read = True
 
 def load_files():
+    start = clock_time.perf_counter()
     count = 0
     length = len(FILES)
     for time in FILES.keys():
@@ -50,7 +52,9 @@ def load_files():
             print("Loading:", count/length*100, "% loaded")
         models[time] = GribVectorField(read_grib_file(time))
         count += 1
-    print("Fully loaded!")
+    end = clock_time.perf_counter()
+    print(f"Fully loaded dataset in {end - start:0.4f} seconds");
+
 
 def round_time(t):
     times = FILES.keys()
