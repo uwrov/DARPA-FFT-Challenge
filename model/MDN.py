@@ -209,8 +209,8 @@ def sampling(pi, sigma, mu, pho, n ):
 
 def return_expecation_value(pi, mu):
     expectation = torch.zeros(1, 2+7)
-    print(pi.size())
-    print(mu.size())
+    #print(pi.size())
+    #print(mu.size())
     for i in range(0, pi.size(0)):
         expectation += pi[i]*mu[i:i+1, :]
     return expectation
