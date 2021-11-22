@@ -325,10 +325,10 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                         
             if valid and len(features) > MIN_SAMPLE:
                 inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
-                outputs = np.array(delta_movement)[1:, :]
+                outputs = np.concatenate( (np.array(features)[1:, 0:feature_number], np.array(delta_movement)[1:, :]), axis = 1)
                 ref = np.array(absolute_pos)[:-1, :]
                 assert inputs.shape[0] == outputs.shape[0]
-
+   
                 sample_num = inputs.shape[0]
                 #print(sample_num)
                 training_num = sample_num- test_num
@@ -418,7 +418,8 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
             # concatenate the features with history movement as the input features
             if valid and len(features) > MIN_SAMPLE:
                 inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
-                outputs = np.array(delta_movement)[1:, :]
+                outputs = np.concatenate( np.array(features)[0:feature_number, :], ( np.array(delta_movement)[1:, :] ), axis = 1)
+                #outputs = np.array(delta_movement)[1:, :]
                 ref = np.array(absolute_pos)[:-1, :]
                 assert inputs.shape[0] == outputs.shape[0]
 
