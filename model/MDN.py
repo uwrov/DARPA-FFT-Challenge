@@ -51,9 +51,9 @@ def bivariate_gaussian_probability(sigma, mu, pho, target):
       mu_i = mu[:,:,i]
       sigma_i = sigma[:, :, i]
       target_i = target[:,:,i]
-      ret += (–torch.log(sigma_i)
-                – 0.5 * LOG2PI
-                – 0.5 * torch.pow((target_i – mu_i) / sigma_i, 2)
+      ret += (-torch.log(sigma_i)
+                -0.5 * LOG2PI
+                -0.5 * torch.pow((target_i-mu_i) / sigma_i, 2)
       )
     
     #print(ret.shape)
