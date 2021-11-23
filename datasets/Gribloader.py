@@ -39,7 +39,8 @@ def read_file_paths():
                 t_day = (t_day % 30) + 1
                 file_path = os.path.join(root, filename)
                 dt = datetime(year, t_month, t_day, hour).timestamp()
-                FILES[dt] = file_path
+                if hour % 6 == 0:
+                    FILES[dt] = file_path
     load_files()
     files_read = True
 
@@ -48,9 +49,10 @@ def load_files():
     count = 0
     length = len(FILES)
     for time in FILES.keys():
-        if(count == length or count % 5 == 0):
-            print("Loading:", count/length*100, "% loaded")
-        models[time] = GribVectorField(read_grib_file(time))
+        if time > datetime(2021, 11, 19).timestamp():
+            if(count == length or count % 5 == 0):
+                print("Loading:", count/length*100, "% loaded")
+            models[time] = GribVectorField(read_grib_file(time))
         count += 1
     end = clock_time.perf_counter()
     print(f"Fully loaded dataset in {end - start:0.4f} seconds");

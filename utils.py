@@ -14,7 +14,7 @@ Config = {
     "lambda_pho": 1e-3,
     "scheduler": "cosine",
     "lr_decay": 0.98,
-    "test_num": 85,
+    "test_num": 108,
     "vector_field": True,
     "predict": False,
     # ---------------- para for LSTM --------------------
@@ -64,3 +64,13 @@ def visual_path(previous_path, trace_gt, trace_predict, id):
 
   plt.legend()
   plt.savefig("./visual/Fig_" + str(id) + ".png")
+
+def visual_path_pred(previous_path, trace_predict, id):
+  plt.figure(0)
+  plt.clf()
+  print("visual for", id)
+  plt.plot(previous_path[:,0], previous_path[:,1], '-', markersize=2, label = "training path")
+  plt.plot(trace_predict[:,1], trace_predict[:,2], '--', markersize=2, label = "predict path")
+  plt.legend()
+  plt.savefig("./visual2/Fig_" + str(id) + ".png")
+
