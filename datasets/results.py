@@ -18,7 +18,7 @@ TIMESTAMPS = {
 
 def write_results(data):
     '''
-        numpy with size(m, N, 3)
+        dict[spotid] (size m) = list of size(N, 3)
             - m number of spots,
             - N number of predictions
             - 3 [timestamp, longitude, latitude]
@@ -33,7 +33,7 @@ def write_results(data):
             row['spotterId'] = spot
             predictions = data[spot]
             for predict in predictions:
-                (t_s, lon, lat) = predict
+                (t_s, lat, lon) = predict
                 for anchor_time in TIMESTAMPS.keys():
                     date = TIMESTAMPS[anchor_time]
                     dt = abs(anchor_time - t_s)
