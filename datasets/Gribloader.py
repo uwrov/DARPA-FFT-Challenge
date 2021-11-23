@@ -49,7 +49,11 @@ def load_files():
     count = 0
     length = len(FILES)
     for time in FILES.keys():
+<<<<<<< HEAD
         if time > datetime(2021, 11, 20).timestamp():
+=======
+        if time > datetime(2021, 11, 19).timestamp():
+>>>>>>> 112f3290e72b494878bc18801b6b065be6a589e8
             if(count == length or count % 5 == 0):
                 print("Loading:", count/length*100, "% loaded")
             models[time] = GribVectorField(read_grib_file(time))

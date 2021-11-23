@@ -37,7 +37,7 @@ def read_json_file(name):
 
 
 def read_file():
-    file = "./datasets/darpa_data/challenge_19-day_sofar_20211102_csv.csv"#"./datasets/darpa_data/challenge_18-day_sofar_20211102_csv.csv"
+    file = "./datasets/darpa_data/challenge_20-day_sofar_20211102_csv.csv"#"./datasets/darpa_data/challenge_18-day_sofar_20211102_csv.csv"
     data = pd.read_csv(file)
     #data = pd.read_excel(file) # read the data from excel file
     index_name = [var for var in data.columns]  # index names in the first row
@@ -99,6 +99,32 @@ def prepare_test(points, previous_points, label, num_steps, pos, history, Config
         Y = label[pos]
         return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
     
+
+def return_vector_field(current_timestamp, location_pred, now_feature):
+    if location_pred[1] < 0: longi = location_pred[1] + 360
+    else: longi = location_pred[1]
+
+    field, field_pos = get_field(longi, location_pred[0], current_timestamp)
+    field = np.array(field)
+
+    return np.concatenate((now_feature, field) , axis=0)
+
+def prepare_pred(previous_points, num_steps, pos, history, Config):
+    assert history.shape[0] == pos+1
+    if pos - num_steps + 1 >= 0:
+        #X = np.concatenate( (points[pos - num_steps + 1: pos + 1, 0:Config["feature_num"]], history[pos - num_steps + 1: pos + 1, :]), axis = 1)
+        X = history[pos - num_steps + 1: pos + 1, :]
+        #np.concatenate( 
+        #(history[pos - num_steps + 1: pos + 1, :], points[pos - num_steps + 1: pos + 1, 2+Config["feature_num"]:])
+        #, axis = 1)
+        return torch.tensor([X], dtype=torch.float32)
+    else:
+        #print(history.shape, previous_points.shape)
+        testing_part = history[0:pos + 1, :] 
+        training_part = previous_points[-(num_steps - pos -1):, :]
+   
+        X = np.concatenate((training_part, testing_part), axis = 0) 
+        return torch.tensor([X], dtype=torch.float32)
 
 def test_iter(points, previous_points, label, batch_size, num_steps, device=None):
     num_examples = points.shape[0] 
@@ -297,6 +323,7 @@ def lstm_data_prepare_json(divide_factor, feature_number):
 def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use):
     train_data = ([], [], [])
     test_data = ([], [], [])
+
     index_name, data = read_file()
     #path = get_path(data)
 
@@ -341,13 +368,14 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 training_num = sample_num- test_num
                 training_numbers.append(training_num)
                 testing_numbers.append(test_num)
-
+          
                 train_data[0].append(inputs[:training_num])
                 train_data[1].append(outputs[:training_num])
                 train_data[2].append(ref[:training_num])
                 test_data[0].append(inputs[training_num:])
                 test_data[1].append(outputs[training_num:])
                 test_data[2].append(ref[training_num:])
+                
             else:
                 print("ERROR: Too much data lost, so discard ", previous_id, len(features))
             # reset the tuple to save information for next spotid
@@ -392,6 +420,7 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                 print("Warning: too much missing hours in bot:", current_id, missing_hour, "hours ", data[i, Timestamp] )
                 delta_movement = []
                 absolute_pos = []
+                time_lines = []
                 timestamp = [data[i, epoch]]
                 features = []
             else:
@@ -489,6 +518,203 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
     return train_data, test_data
         
 
+def predict_data_prepare(divide_factor, feature_number, test_num, vector_field_use):
+    train_data = ([], [], [])
+    final_status = []
+    
+    index_name, data = read_file()
+    #path = get_path(data)
+
+    data = feature_normalize(data, feature_number) # normalize the feature to [0, 1]
+    training_numbers = [] 
+    testing_numbers = []
+    
+    previous_id = data[0, spotId]
+    timestamp = []
+
+    delta_movement = [] # output of model 
+    features = [] # input of of model
+    absolute_pos = []
+    time_lines = []
+    valid = True
+    if_update = False
+    filename = "./datasets/vector_field/" +data[0, spotId] + "_feature.pkl"
+    if os.path.exists(filename) and vector_field_use:
+        pickle_file = open(filename, 'rb') 
+        feature_load = pickle.load(pickle_file)
+        pickle_file.close()
+        preload = True
+        print("load file", filename, " successfully!")
+    else: 
+        preload = False
+        feature_load = {}
+           
+    for i in range(0, data.shape[0]):
+        current_id = data[i, spotId]
+        if current_id != previous_id:
+            #print("--------------------", current_id, valid, len(features))
+            # concatenate the features with history movement as the input features
+                        # divide the dataset into training dataset and testing dataset
+                        
+            if valid and len(features) > MIN_SAMPLE:
+                inputs = np.concatenate((np.array(delta_movement)[:-1, :], np.array(features)[:-1, :]), axis =1 )
+                outputs = np.concatenate( ( np.array(delta_movement)[1:, :], np.array(features)[1:, 0:feature_number]), axis = 1)
+                ref = np.array(absolute_pos)[:-1, :]
+                assert inputs.shape[0] == outputs.shape[0]
+                final_feature = np.concatenate( ( np.array(delta_movement)[-1, :],np.array(features)[-1, :]), axis = 0)
+   
+                sample_num = inputs.shape[0]
+
+                training_numbers.append(sample_num)
+          
+                train_data[0].append(inputs)
+                train_data[1].append(outputs)
+                train_data[2].append(ref)
+                
+                final_status.append((time_lines[-1], final_feature, np.array(absolute_pos)[-1, :], previous_id))
+                
+            else:
+                print("ERROR: Too much data lost, so discard ", previous_id, len(features))
+            # reset the tuple to save information for next spotid
+            delta_movement = []
+            absolute_pos = []
+            time_lines = []
+            timestamp = [data[i, epoch]]
+            
+            filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
+            if vector_field_use and if_update: #(not os.path.exists(filename2)) 
+                pickle_file = open(filename2,'wb')
+                pickle.dump(feature_load, pickle_file)
+                pickle_file.close()
+                print("save file", filename2, " successfully!")
+            
+            filename = "./datasets/vector_field/" + current_id + "_feature.pkl"
+            if os.path.exists(filename) and vector_field_use:
+                pickle_file = open(filename, 'rb') 
+                feature_load = pickle.load(pickle_file)
+                pickle_file.close()
+                preload = True
+                print("load file", filename, " successfully!")
+            else: 
+                preload = False
+                feature_load = {}
+
+            features = []
+            valid = True
+            if_update = False
+        else:
+            if data[i, epoch] < 1636070401: 
+                timestamp = [data[i, epoch]]
+                continue
+        
+            timestamp.append(data[i, epoch])
+            if(i == 0): 
+                continue    
+            missing_hour = round((timestamp[-1] - timestamp[-2])/3600)
+
+            if missing_hour == 0:
+                continue
+            elif missing_hour > 4: 
+                print("Warning: too much missing hours in bot:", current_id, missing_hour, "hours ", data[i, Timestamp] )
+                delta_movement = []
+                absolute_pos = []
+                time_lines = []
+                timestamp = [data[i, epoch]]
+                features = []
+                time_lines = []
+            else:
+                if missing_hour > 1: print("Warning: miss some data in bot",current_id, missing_hour ,"hours, use interpolation to fix")
+                previous_feature = data[i-1, 0:feature_number]
+                current_feature = data[i, 0:feature_number]
+
+                previous_pos = data[i-1, latitude:longitude+1]
+                current_pos = data[i, latitude:longitude+1]
+                previous_time = timestamp[-2] 
+                now_time = timestamp[-1] 
+                for h in range(0, missing_hour):
+                    time_interpolated = int(previous_time + (h+1)/missing_hour*(now_time - previous_time)) 
+                    now_loc = previous_pos + (h+1)/missing_hour*(current_pos - previous_pos)
+                    absolute_pos.append(now_loc)
+                    now_feature = previous_feature + (h+1)/missing_hour*(current_feature - previous_feature)
+                    delta_movement.append(scale_ratio*(current_pos - previous_pos)/missing_hour)
+                    time_lines.append(time_interpolated)
+                    if vector_field_use:
+                        if now_loc[1] < 0: longi = now_loc[1] + 360
+                        else: longi = now_loc[1]
+                        if preload:
+                            if time_interpolated  in feature_load:
+                                field, field_pos = feature_load[time_interpolated]  
+                            else:
+                                #print(time_interpolated)
+                                field, field_pos = get_field(longi, now_loc[0], time_interpolated)
+                                field = np.array(field)
+                                feature_load[time_interpolated] = field, field_pos
+                                if_update = True
+                        else:
+                            field, field_pos = get_field(longi, now_loc[0], time_interpolated)
+                            field = np.array(field)
+                            feature_load[time_interpolated] = field, field_pos
+                            if_update = True                            
+                        #print(len(field), len(field_pos))
+                        #raise KeyboardInterrupt
+                        features.append(np.concatenate((now_feature, field) , axis=0))
+                    else:
+                        features.append(now_feature)
+
+                        
+        if i == data.shape[0] - 1:
+            # concatenate the features with history movement as the input features
+            if valid and len(features) > MIN_SAMPLE:
+                #inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
+                #outputs = np.array(delta_movement)[1:, :]
+                inputs = np.concatenate((np.array(delta_movement)[:-1, :], np.array(features)[:-1, :]), axis =1 )
+                outputs = np.concatenate( ( np.array(delta_movement)[1:, :], np.array(features)[1:, 0:feature_number]), axis = 1)
+                final_feature = np.concatenate( ( np.array(delta_movement)[-1, :],np.array(features)[-1, :]), axis = 0)
+                ref = np.array(absolute_pos)[:-1, :]
+                assert inputs.shape[0] == outputs.shape[0]
+
+                sample_num = inputs.shape[0]
+
+                training_numbers.append(sample_num)
+    
+                final_status.append((time_lines[-1], final_feature, np.array(absolute_pos)[-1, :], previous_id))
+                train_data[0].append(inputs)
+                train_data[1].append(outputs)
+                train_data[2].append(ref)
+
+            
+            filename2 = "./datasets/vector_field/" + previous_id + "_feature.pkl"
+            if if_update and vector_field_use:
+                pickle_file = open(filename2,'wb')
+                pickle.dump(feature_load, pickle_file)
+                pickle_file.close()
+                print("save file", filename2, " successfully!")
+
+
+            '''
+            inputs = np.concatenate((np.array(features)[:-1, :], np.array(delta_movement)[:-1, :]), axis =1 )
+            outputs = np.array(delta_movement)[1:, :]
+            ref = np.array(absolute_pos)[:-1, :]
+            assert inputs.shape[0] == outputs.shape[0]
+            # divide the dataset into training dataset and testing dataset
+            sample_num = inputs.shape[0]
+            training_num = int(divide_factor*sample_num)
+            training_numbers.append(training_num)
+            testing_numbers.append(sample_num - training_num)
+
+            train_data[0].append(inputs[:training_num])
+            train_data[1].append(outputs[:training_num])
+            train_data[2].append(ref[:training_num])
+            test_data[0].append(inputs[training_num:])
+            test_data[1].append(outputs[training_num:])
+            test_data[2].append(ref[training_num:])
+            '''
+        previous_id = current_id
+    print("SpotID number: ", len(testing_numbers))
+    print("LSTM Train data:", training_numbers)
+
+    return train_data, final_status
+        
 
 if __name__ == "__main__":
     lstm_data_prepare_json(0.8, 7)
