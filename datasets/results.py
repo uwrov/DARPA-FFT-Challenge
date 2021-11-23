@@ -7,11 +7,11 @@ FIELD_NAMES = ['spotterId', 'Nov24lat', 'Nov24lon', 'Nov26lat',
 DATES = ['Nov24','Nov26','Nov28','Nov30','Dec2']
 
 TIMESTAMPS = {
-    datetime(2021, 11, 24, 12).timestamp(): 'Nov24',
-    datetime(2021, 11, 26, 12).timestamp(): 'Nov26',
-    datetime(2021, 11, 28, 12).timestamp(): 'Nov28',
-    datetime(2021, 11, 30, 12).timestamp(): 'Nov30',
-    datetime(2021, 12, 2, 12).timestamp(): 'Dec2'
+    datetime(2021, 11, 24, 17).timestamp(): 'Nov24',
+    datetime(2021, 11, 26, 17).timestamp(): 'Nov26',
+    datetime(2021, 11, 28, 17).timestamp(): 'Nov28',
+    datetime(2021, 11, 30, 17).timestamp(): 'Nov30',
+    datetime(2021, 12, 2, 17).timestamp(): 'Dec2'
 }
 
 def write_results(data):
