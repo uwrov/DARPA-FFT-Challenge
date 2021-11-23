@@ -114,10 +114,11 @@ def validate(model, test_data, train_data, config, device, visual = 0):
             trace_predict = [[absolute_pos[id][0][0], absolute_pos[id][0][1]]]
             trace_gt = [[absolute_pos[id][0][0], absolute_pos[id][0][1]]]
 
-            history_movement = [ points[id][:2+config["feature_num"]] ] #[ [points[id][0][-2], points[id][0][-1]] ]
+            history_movement = [ points[id][0][:2+config["feature_num"]] ] #[ [points[id][0][-2], points[id][0][-1]] ]
             #print(points[id].shape[0])
             for idx in range(0, points[id].shape[0]):
-                inputs, labels = prepare_test(points[id], previous_points[id], label[id], Config["sequence_length"], idx, np.array(history_movement), Config)
+
+                inputs, labels = prepare_test( points[id], previous_points[id], label[id], Config["sequence_length"], idx, np.array(history_movement), Config)
 
                 labels = labels.cuda(device)
                 inputs = inputs.cuda(device)
@@ -136,7 +137,9 @@ def validate(model, test_data, train_data, config, device, visual = 0):
                 # track the trace of spotid
                 pred = pred.numpy()
                 truth = truth.numpy()
-                history_movement.append(pred) 
+                history_movement.append(pred[0, :]) 
+                #print(history_movement)
+                #print(np.array(history_movement))
                 pred_pos= pred[:, :2]
                 for i in range(0, pred.shape[0]):
                     location_pred[0] += pred_pos[i][0]/scale_ratio

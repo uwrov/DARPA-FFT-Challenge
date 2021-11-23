@@ -84,12 +84,17 @@ def prepare_test(points, previous_points, label, num_steps, pos, history, Config
     assert history.shape[0] == pos+1
     if pos - num_steps + 1 >= 0:
         #X = np.concatenate( (points[pos - num_steps + 1: pos + 1, 0:Config["feature_num"]], history[pos - num_steps + 1: pos + 1, :]), axis = 1)
-        X = history[pos - num_steps + 1: pos + 1, :]
+        X = np.concatenate( 
+        (history[pos - num_steps + 1: pos + 1, :], points[pos - num_steps + 1: pos + 1, 2+Config["feature_num"]:])
+        , axis = 1)
+        
         Y = label[pos]
         return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
     else:
-        testing_part = history[0:pos + 1, :] #np.concatenate( (points[0: pos + 1, 0:7] , history[0:pos + 1, :]), axis = 1)
-        training_part = previous_points[-(num_steps - pos -1):, :2+config["feature_num"]]
+        #print(history.shape, points.shape)
+        testing_part = np.concatenate( (history[0:pos + 1, :], points[0: pos + 1, 2+Config["feature_num"]:]), axis = 1) #np.concatenate( (points[0: pos + 1, 0:7] , history[0:pos + 1, :]), axis = 1)
+        training_part = previous_points[-(num_steps - pos -1):, :]
+   
         X = np.concatenate((training_part, testing_part), axis = 0) 
         Y = label[pos]
         return torch.tensor([X], dtype=torch.float32), torch.tensor([Y], dtype=torch.float32)
@@ -318,7 +323,7 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
         preload = False
         feature_load = {}
            
-    for i in tqdm(range(0, data.shape[0])):
+    for i in range(0, data.shape[0]):
         current_id = data[i, spotId]
         if current_id != previous_id:
             #print("--------------------", current_id, valid, len(features))
@@ -409,12 +414,13 @@ def lstm_data_prepare(divide_factor, feature_number, test_num, vector_field_use)
                         else: longi = now_loc[1]
                         if preload:
                             if time_interpolated  in feature_load:
-                              field, field_pos = feature_load[time_interpolated]  
+                                field, field_pos = feature_load[time_interpolated]  
                             else:
-                              field, field_pos = get_field(longi, now_loc[0], time_interpolated)
-                              field = np.array(field)
-                              feature_load[time_interpolated] = field, field_pos
-                              if_update = True
+                                #print(time_interpolated)
+                                field, field_pos = get_field(longi, now_loc[0], time_interpolated)
+                                field = np.array(field)
+                                feature_load[time_interpolated] = field, field_pos
+                                if_update = True
                         else:
                             field, field_pos = get_field(longi, now_loc[0], time_interpolated)
                             field = np.array(field)
