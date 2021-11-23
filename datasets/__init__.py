@@ -6,6 +6,8 @@ from __future__ import absolute_import
 # implementation details are hidden
 from .Dataloader import lstm_data_prepare, data_iter_random, read_file, get_path, prepare_test, scale_ratio, lstm_data_prepare_json
 from .Gribloader import get_field
+from .results import write_results
 
 __all__ = ['lstm_data_prepare', 'data_iter_random', 'prepare_test',
-                'scale_ratio', 'read_file', 'get_path', 'get_field', 'lstm_data_prepare_json']
+                'scale_ratio', 'read_file', 'get_path', 'get_field',
+                'lstm_data_prepare_json', 'write_results']
