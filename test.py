@@ -12,8 +12,8 @@ def test_results():
     for s in range(SPOT_COUNT):
         pred_list = list()
         for i in range(TOTAL):
-            long = random.randint(0, 360)
-            lat = random.randint(0, 50)
+            long = random.uniform(0, 360)
+            lat = random.uniform(0, 50)
             day = random.randint(1, 30)
             hour = random.randint(0, 23)
             pred_list.append((datetime(2021,11,day,hour).timestamp(), long, lat))

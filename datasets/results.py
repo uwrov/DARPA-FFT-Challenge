@@ -1,6 +1,8 @@
 import csv
 from datetime import datetime
 
+ACCURACY = 5
+
 FIELD_NAMES = ['spotterId', 'Nov24lat', 'Nov24lon', 'Nov26lat',
     'Nov26lon', 'Nov28lat', 'Nov28lon', 'Nov30lat', 'Nov30lon', 'Dec2lat', 'Dec2lon']
 
@@ -37,6 +39,6 @@ def write_results(data):
                     dt = abs(anchor_time - t_s)
                     if dt < closest_ts[date]:
                         closest_ts[date] = dt
-                        row[date+'lon'] = lon
-                        row[date+'lat'] = lat
+                        row[date+'lon'] = round(lon, ACCURACY)
+                        row[date+'lat'] = round(lat, ACCURACY)
             writer.writerow(row)
